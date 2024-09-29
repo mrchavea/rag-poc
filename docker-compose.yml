@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3000}:3000" # Puerto de la aplicación
+      - "9229:9229" # Puerto para el depurador (debug)
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    environment:
+      - NODE_ENV=development
+      - PORT=${PORT:-3000} # Fallback a 3000 si PORT no está definido
+    command: npm run dev
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
