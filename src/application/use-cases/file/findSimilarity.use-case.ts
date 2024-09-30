@@ -1,50 +1,24 @@
 import { LangChain_Adapter } from "@/infrastructure/adapters";
-import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
+import { SingleFileDTO } from "@/infrastructure/dtos/singleFIle.dto";
 
 export class FindSimilarityUseCase {
-  readonly pdf_file: Blob;
-  readonly offerDescription: string;
-
-  constructor(pdf_file: Blob, offerDescription: string) {
-    this.pdf_file = pdf_file;
-    this.offerDescription = offerDescription;
-  }
-
-  async execute() {
-    console.log(this.pdf_file);
+  async execute(singleFileDTO: SingleFileDTO): Promise<number> {
+    console.log(singleFileDTO.file);
     //Get data from PDF
-    const offerDescriptionText = await LangChain_Adapter.PDFToText(this.pdf_file);
-    const extractionModel = new HuggingFaceTransformersEmbeddings({
-      model: "Xenova/all-MiniLM-L6-v2",
-      stripNewLines: true
-    });
+    const resumeText = await LangChain_Adapter.PDFToText(singleFileDTO.file);
     //(COULD IMPROVE PERFORMANCE) -> Get a briefing of the PDF with a model
+    //(COULD IMPROVE PERFORMANCE) -> Create text with a task description in order to generate more concise data
+    //(COULD IMPROVE PERFORMANCE) -> Singleton with method to load models at beginning/Worker to load models
+    //(COULD IMPROVE PERFORMANCE) -> Worker for blocking calculations
     //Create embeds of both texts
-    // const embeddedCV = await extractionModel.embedQuery(textContent);
-    // const embeddedOfferDescription = await extractionModel.embedQuery(this.offerDescription);
-    const embeddedOfferDescription = await LangChain_Adapter.featureExtraction(this.offerDescription);
-    const embeddedCV = await LangChain_Adapter.featureExtraction(offerDescriptionText);
-
-    //Calculate vector similiraty with cosen difference
-    //const similarityScore = this.calculateCosineSimilarity(embeddedCV, embeddedOfferDescription);
-    const similarityScore = LangChain_Adapter.calculateCosSimilarity(embeddedCV, embeddedOfferDescription);
+    const embeddedCV = await LangChain_Adapter.featureExtraction(resumeText);
+    const embeddedOfferDescription = await LangChain_Adapter.featureExtraction(singleFileDTO.offerDescription);
+    // Calculate vector similiraty with cosen difference
+    const similarityScore = LangChain_Adapter.calculateCosineSimilarity(embeddedCV, embeddedOfferDescription);
+    //const similarityScore = await LangChain_Adapter.calculateCosSimilarity(embeddedCV, embeddedOfferDescription);
     console.log("Similarity Score:", similarityScore);
     //Use Encoder-decoder to understand the offer description
     console.log("EMBEDS", embeddedCV, embeddedOfferDescription);
-  }
-
-  private calculateCosineSimilarity(vectorA: number[], vectorB: number[]): number {
-    const dotProduct = this.dot(vectorA, vectorB);
-    const normA = this.norm(vectorA);
-    const normB = this.norm(vectorB);
-    return dotProduct / (normA * normB);
-  }
-
-  private dot(vectorA: number[], vectorB: number[]): number {
-    return vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
-  }
-
-  private norm(vector: number[]): number {
-    return Math.sqrt(vector.reduce((sum, a) => sum + a * a, 0));
+    return similarityScore;
   }
 }

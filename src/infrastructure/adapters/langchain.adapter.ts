@@ -1,4 +1,7 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { ModelsProvider } from "../models/models.provider";
+import { CustomError, MODELS_TYPES } from "@/domain";
+import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
 //import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
 //import { pipeline, cos_sim } from "@xenova/transformers";
 // import { pipeline, cos_sim } from "@xenova/transformers";
@@ -21,17 +24,28 @@ export class LangChain_Adapter {
     return doc[0].pageContent;
   }
 
-  static async featureExtraction(documents: string | Array<string>): Promise<number[]> {
-    const transformers = await import("@xenova/transformers");
-    const extractor = await transformers.pipeline("feature-extraction", "mixedbread-ai/mxbai-embed-large-v1", {
-      quantized: true // Comment out this line to use the quantized version
+  static async featureExtraction(document: string): Promise<number[]> {
+    const extractionModel = new HuggingFaceTransformersEmbeddings({
+      model: "mixedbread-ai/mxbai-embed-large-v1",
+      stripNewLines: true,
+      pipelineOptions: { normalize: true, quantize: false, pooling: "mean" }
     });
-    const embed = await extractor(documents, { normalize: true, pooling: "mean" });
-    return embed.tolist();
+    return await extractionModel.embedQuery(document);
   }
 
-  static async calculateCosSimilarity(embed_1: number[], embed_2: number[]): Promise<number> {
-    const transformers = await import("@xenova/transformers");
-    return transformers.cos_sim(embed_1, embed_2);
+  // static async featureExtraction(document: string): Promise<number[]> {
+  //   try {
+  //     const extractionModel = (await ModelsProvider.getInstance()).getModel(MODELS_TYPES.featureExtraction);
+  //     return await extractionModel.extractFeatures(document);
+  //   } catch (error) {
+  //     throw new CustomError(500, "Ha habido un error inesperado con el modelo");
+  //   }
+  // }
+
+  static calculateCosineSimilarity(vectorA: number[], vectorB: number[]): number {
+    const dotProduct = vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
+    const normA = Math.sqrt(vectorA.reduce((sum, a) => sum + a * a, 0));
+    const normB = Math.sqrt(vectorB.reduce((sum, b) => sum + b * b, 0));
+    return dotProduct / (normA * normB);
   }
 }
