@@ -2,6 +2,7 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { ModelsProvider } from "../models/models.provider";
 import { CustomError, MODELS_TYPES } from "@/domain";
 import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
+import { FeatureExtractionModel } from "../models/featureExtraction.model";
 //import { HuggingFaceTransformersEmbeddings } from "@langchain/community/embeddings/hf_transformers";
 //import { pipeline, cos_sim } from "@xenova/transformers";
 // import { pipeline, cos_sim } from "@xenova/transformers";
@@ -25,11 +26,12 @@ export class LangChain_Adapter {
   }
 
   static async featureExtraction(document: string): Promise<number[]> {
-    const extractionModel = new HuggingFaceTransformersEmbeddings({
-      model: "mixedbread-ai/mxbai-embed-large-v1",
-      stripNewLines: true,
-      pipelineOptions: { normalize: true, quantize: false, pooling: "mean" }
-    });
+    // const extractionModel = new HuggingFaceTransformersEmbeddings({
+    //   model: "mixedbread-ai/mxbai-embed-large-v1",
+    //   stripNewLines: true,
+    //   pipelineOptions: { normalize: true, quantize: false, pooling: "mean" }
+    // });
+    const extractionModel = (await FeatureExtractionModel.getInstance()).getModel();
     return await extractionModel.embedQuery(document);
   }
 
